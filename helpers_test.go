@@ -4,22 +4,69 @@ import (
 	"testing"
 )
 
-func Test_ConcurrentSet(t *testing.T) {
-	s := NewConcurrentSet()
-	if s.Empty() != true || s.Size() != 0 {
-		t.Error("set should be empty after initialized")
+func Test_randomString(t *testing.T) {
+	got := randomString(5)
+	t.Error(got)
+}
+
+func TestReplaceMapByEnvs(t *testing.T) {
+	type args struct {
+		envs    map[string]interface{}
+		sources []map[string]interface{}
 	}
-	s.Put("Key")
-	if s.Empty() != false || s.Size() != 1 {
-		t.Error("set should not be empty after put")
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Test1",
+			args: args{
+				envs: map[string]interface{}{"Authorization": "THIS_IS_A_PREDEFINED_AUTH_TOKEN"},
+				sources: []map[string]interface{}{
+					{"Authorization": "aBearer $Authorization", "Content-Type": "application/json"},
+				},
+			},
+		},
 	}
-	s.Put("Key")
-	if s.Size() != 1 {
-		t.Error("set should handler duplicated items")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Log(tt.args.sources)
+			ReplaceMapByEnvs(tt.args.envs, tt.args.sources...)
+			t.Log(tt.args.sources)
+		})
 	}
-	s.Delete("Key")
-	if s.Size() != 0 {
-		t.Error("set should be empty after delete")
+}
+
+func TestReplaceStringByEnvs(t *testing.T) {
+	type args struct {
+		envs   map[string]interface{}
+		source *string
 	}
-	s.Delete("Key")
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "test1",
+			args: args{
+				envs:   map[string]interface{}{"header": "AUTH_TOKEN"},
+				source: NewString("{\"myHeader\": \"$header\", \"data\": \"!RANDOM\", \"data2\": \"!B64RANDOM\", \"workspace\": \"!UUID\", \"ID\": \"!AUTONUM\"}"),
+			},
+			wantErr: false,
+		},
+	}
+	for idx, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("Before = %s\n", *tt.args.source)
+			if err := ReplaceStringByEnvs(tt.args.envs, idx, tt.args.source); (err != nil) != tt.wantErr {
+				t.Errorf("ReplaceStringByEnvs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			t.Logf("After = %s\n", *tt.args.source)
+		})
+	}
+}
+
+func NewString(s string) *string {
+	return &s
 }

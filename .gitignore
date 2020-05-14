@@ -1,4 +1,6 @@
+.vscode/
 alex
 vendor
 volume/
 volume
+*.out

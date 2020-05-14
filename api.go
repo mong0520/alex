@@ -62,6 +62,7 @@ func GetBoomJobState(req *http.Request, r render.Render) {
 
 func TestParam(req *http.Request, r render.Render) {
 	var host = req.FormValue("host")
+	var envs = req.FormValue("envs")
 	var url = req.FormValue("url")
 	var header = req.FormValue("header")
 	var params = req.FormValue("param")
@@ -71,17 +72,21 @@ func TestParam(req *http.Request, r render.Render) {
 	var headerMap map[string]interface{}
 	var paramMap map[string]interface{}
 	var dataMap map[string]interface{}
-	var body []byte
+	var postBody []byte
+	var envMap map[string]interface{}
 	json.Unmarshal([]byte(header), &headerMap)
 	json.Unmarshal([]byte(params), &paramMap)
-	fmt.Println(data)
+	json.Unmarshal([]byte(envs), &envMap)
+	ReplaceMapByEnvs(envMap, 1, headerMap, paramMap, dataMap)
+	ReplaceStringByEnvs(envMap, 1, &data)
 	if jsonified {
-		body = []byte(data)
+		postBody = []byte(data)
 	} else {
 		json.Unmarshal([]byte(data), &dataMap)
-		body = BodyBytes(dataMap)
+		postBody = BodyBytes(dataMap)
 	}
-	rq, _ := http.NewRequest(method, Urlcat(host, url, paramMap), bytes.NewReader(body))
+
+	rq, _ := http.NewRequest(method, Urlcat(host, url, paramMap), bytes.NewReader(postBody))
 	for k, vs := range headerMap {
 		rq.Header.Add(k, vs.(string))
 	}
@@ -96,6 +101,12 @@ func TestParam(req *http.Request, r render.Render) {
 		if err != nil {
 			result["err"] = err.Error()
 		} else {
+			result["_debug_request"] = fmt.Sprintf("Method: [%s], Header: [%#v], URL: [%s], Body: [%s]",
+				method,
+				headerMap,
+				Urlcat(host, url, paramMap),
+				string(postBody),
+			)
 			result["result"] = string(body)
 		}
 	} else {

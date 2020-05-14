@@ -30,6 +30,8 @@ type VegetaJob struct {
 	Project string
 	// Http API Url
 	Url string
+	// Enviroment variables
+	Envs string
 	// Hosts Pool for randomize choice
 	Hosts     []string
 	Method    string
@@ -99,6 +101,7 @@ func CreateVegetaJob(req *http.Request, r render.Render) {
 	var name = req.FormValue("name")
 	var team = req.FormValue("team")
 	var project = req.FormValue("project")
+	var envs = req.FormValue("envs")
 	var job = VegetaJob{
 		Id:        bson.NewObjectId(),
 		Name:      name,
@@ -114,7 +117,10 @@ func CreateVegetaJob(req *http.Request, r render.Render) {
 		Redirects: 1,
 		Keepalive: true,
 		Periods:   []RatePeriod{RatePeriod{10, 5}},
+		Envs:      envs,
+		// EnvsMap:   envMap,
 	}
+	fmt.Printf("[DEBUG]: create job: %+v\n", job)
 	err := G_MongoDB.C("vegeta_jobs").Insert(&job)
 	if err != nil {
 		log.Panic(err)
@@ -156,6 +162,7 @@ func EditVegetaJob(req *http.Request, r render.Render) {
 	job.Project = req.FormValue("project")
 	job.Method = req.FormValue("method")
 	job.Url = req.FormValue("url")
+	job.Envs = req.FormValue("envs")
 	job.Jsonified = req.FormValue("jsonified") != ""
 	var hosts []string
 	for _, host := range req.Form["host"] {
@@ -205,6 +212,7 @@ func EditVegetaJob(req *http.Request, r render.Render) {
 		"hosts":     job.Hosts,
 		"jsonified": job.Jsonified,
 		"seeds":     job.Seeds,
+		"envs":      job.Envs,
 	}
 	var op = bson.M{"$set": changed}
 	err = G_MongoDB.C("vegeta_jobs").UpdateId(job.Id, op)
@@ -252,6 +260,13 @@ func RunVegetaJob(req *http.Request, r render.Render) {
 	var durations = req.Form["duration"]
 	var comment = req.FormValue("comment")
 	var periods = []RatePeriod{}
+	var envs = job.Envs
+	var envMap map[string]interface{}
+	err = json.Unmarshal([]byte(envs), &envMap)
+	if err != nil {
+		log.Panicln(err)
+	}
+
 	for i, _ := range rates {
 		var rate, _ = strconv.Atoi(rates[i])
 		var duration, _ = strconv.Atoi(durations[i])
@@ -260,6 +275,14 @@ func RunVegetaJob(req *http.Request, r render.Render) {
 	job.Workers = uint64(workers)
 	job.Timeout = timeout
 	job.Periods = periods
+
+	// replace magic strings
+	for idx, job := range job.Seeds {
+		log.Printf("[Before replacement] Header = %+v, Param = %+v, Data = %+v, JsonData = %s\n", job.Header, job.Param, job.Data, job.JsonData)
+		ReplaceMapByEnvs(envMap, idx, job.Header, job.Data, job.Param)
+		ReplaceStringByEnvs(envMap, idx, &job.JsonData)
+		log.Printf("[After replacement] Header = %+v, Param = %+v, Data = %+v, JsonData = %s\n", job.Header, job.Param, job.Data, job.JsonData)
+	}
 	var changed = bson.M{
 		"workers":   job.Workers,
 		"timeout":   job.Timeout,
@@ -528,6 +551,7 @@ func NewRandomVegetaTargeter(job *VegetaJob) vegeta.Targeter {
 			} else {
 				body = BodyBytes(data)
 			}
+			log.Printf("[Debug] = %s\n", string(body))
 			var target = vegeta.Target{
 				Method: job.Method,
 				URL:    Urlcat(host, job.Url, param),
