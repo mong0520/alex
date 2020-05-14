@@ -31,6 +31,9 @@ Alex Limitations
 
 Installing & Run
 ----------------------------------
+
+Please install `docker` and `docker-compose` first.
+
 ```shell
 docker-compose build
 docker-compose up
