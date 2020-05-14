@@ -29,20 +29,11 @@ Alex Limitations
 6. Http protocol only.Https is not provided.Encrypting and decrypting will cost too much cpu, report will not be accurate.
 8. With all of those limitations, Alex works quite well.
 
-Installing
+Installing & Run
 ----------------------------------
-```golang
-#install mongodb
-#install golang  # 1.8+ is required
-
-go get -u github.com/golang/dep/cmd/dep # install dep
-go get github.com/ireaderlab/alex # install alex
-
-cd $GOPATH/src/github.com/ireaderlab/alex
-dep ensure
-go build
-./alex
-./alex -c config.json
+```shell
+docker-compose build
+docker-compose up
 
 open browser
 http://localhost:8000/
