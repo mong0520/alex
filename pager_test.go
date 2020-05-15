@@ -12,7 +12,7 @@ func Test_Pager(t *testing.T) {
 	for i := 0; i < 6; i++ {
 		pager.CurrentPage = i
 		if pager.Offset() != 20*i {
-			t.Error("offset should be %d in page %d", 20*i, i)
+			t.Errorf("offset should be %d in page %d", 20*i, i)
 		}
 		if pager.IsFirstVisible() {
 			t.Error("first page should not be visible")
@@ -24,7 +24,7 @@ func Test_Pager(t *testing.T) {
 	for i := 6; i < 45; i++ {
 		pager.CurrentPage = i
 		if pager.Offset() != 20*i {
-			t.Error("offset should be %d in page %d", 20*i, i)
+			t.Errorf("offset should be %d in page %d", 20*i, i)
 		}
 		if !pager.IsFirstVisible() {
 			t.Error("first page should be visible")
@@ -36,7 +36,7 @@ func Test_Pager(t *testing.T) {
 	for i := 46; i < 51; i++ {
 		pager.CurrentPage = i
 		if pager.Offset() != 20*i {
-			t.Error("offset should be %d in page %d", 20*i, i)
+			t.Errorf("offset should be %d in page %d", 20*i, i)
 		}
 		if !pager.IsFirstVisible() {
 			t.Error("first page should be visible")
