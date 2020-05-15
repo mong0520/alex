@@ -28,10 +28,10 @@ func TestReplaceMapByEnvs(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
+	for idx, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Log(tt.args.sources)
-			ReplaceMapByEnvs(tt.args.envs, tt.args.sources...)
+			ReplaceMapByEnvs(tt.args.envs, idx, tt.args.sources...)
 			t.Log(tt.args.sources)
 		})
 	}
