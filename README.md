@@ -96,6 +96,7 @@ A GET/POST Params value started with `!` will be repalced by a predefined magic 
 It supports the first level of `Header`, `Get Params` and all level for `Post Params`
 
 GET Example:
+
 ![Get Params](screenshot/get.png)
 
 Get Params:
@@ -110,6 +111,7 @@ http://localhost:5000/api/v1/internal/rpc?account=neil.wei&data=rtaSg
 
 
 POST Example:
+
 ![Get Params](screenshot/post.png)
 
 Post Params:
