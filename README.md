@@ -40,21 +40,6 @@ http://localhost:8000/
 
 ```
 
-Configuration
----------------------------
-```
-{
-    "BindAddr": "localhost:8000",
-    "MongoUrl": "mongodb://localhost:27017/alex",
-    "Teams": [
-        "python",
-        "java",
-        "php",
-        "go"
-    ]
-}
-
-```
 
 References
 -----------------------------
