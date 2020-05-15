@@ -212,7 +212,7 @@ func ReplaceMapByEnvs(envs map[string]interface{}, autonum int, sources ...map[s
 						source[k] = tmp
 					}
 				}
-				// magic strings
+				// magic functions
 				source[k] = strings.Replace(source[k].(string), "!RANDOM", randomString(5), -1)
 				source[k] = strings.Replace(source[k].(string), "!B64RANDOM", base64.StdEncoding.EncodeToString([]byte(randomString(5))), -1)
 				source[k] = strings.Replace(source[k].(string), "!UUID", genUUID(), -1)
