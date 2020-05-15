@@ -1,4 +1,11 @@
+# build:
+# 	go build
+
+# run: build
+# 	./alex -c config.json
+
 build:
-	go build
-run: build
-	./alex -c config.json
+	docker-compose build
+
+run:
+	docker-compose up

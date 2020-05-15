@@ -212,7 +212,7 @@ func ReplaceMapByEnvs(envs map[string]interface{}, autonum int, sources ...map[s
 						source[k] = tmp
 					}
 				}
-				// magic functions
+				// magic strings
 				source[k] = strings.Replace(source[k].(string), "!RANDOM", randomString(5), -1)
 				source[k] = strings.Replace(source[k].(string), "!B64RANDOM", base64.StdEncoding.EncodeToString([]byte(randomString(5))), -1)
 				source[k] = strings.Replace(source[k].(string), "!UUID", genUUID(), -1)
@@ -227,18 +227,17 @@ func ReplaceMapByEnvs(envs map[string]interface{}, autonum int, sources ...map[s
 
 // ReplaceStringByEnvs replace the string by envs, write the result back to source
 func ReplaceStringByEnvs(envs map[string]interface{}, autonum int, source *string) error {
-	var sourceMap map[string]interface{}
-	err := json.Unmarshal([]byte(*source), &sourceMap)
-	if err != nil {
-		return err
+	// replace by envs
+	for envK, envV := range envs {
+		if strings.Contains(*source, fmt.Sprintf("$%s", envK)) {
+			*source = strings.Replace(*source, fmt.Sprintf("$%s", envK), envV.(string), -1)
+		}
 	}
 
-	ReplaceMapByEnvs(envs, autonum, sourceMap)
-	output, err := json.Marshal(sourceMap)
-	if err != nil {
-		return err
-	}
-	tmp := string(output)
-	*source = tmp
+	// magic functions
+	*source = strings.Replace(*source, "!RANDOM", randomString(5), -1)
+	*source = strings.Replace(*source, "!B64RANDOM", base64.StdEncoding.EncodeToString([]byte(randomString(5))), -1)
+	*source = strings.Replace(*source, "!UUID", genUUID(), -1)
+	*source = strings.Replace(*source, "!AUTONUM", fmt.Sprint(autonum), -1)
 	return nil
 }

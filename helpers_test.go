@@ -50,8 +50,8 @@ func TestReplaceStringByEnvs(t *testing.T) {
 		{
 			name: "test1",
 			args: args{
-				envs:   map[string]interface{}{"header": "AUTH_TOKEN"},
-				source: NewString("{\"myHeader\": \"$header\", \"data\": \"!RANDOM\", \"data2\": \"!B64RANDOM\", \"workspace\": \"!UUID\", \"ID\": \"!AUTONUM\"}"),
+				envs:   map[string]interface{}{"api": "crypto_bulkEncrypt"},
+				source: NewString("{\"id\":!AUTONUM,\"jsonrpc\":\"2.0\",\"method\":\"$api\",\"params\":[[{\"workspace_id\":\"!UUID\",\"key_type\":\"HASH\",\"plaintext\":\"!B64RANDOM\"}]]}"),
 			},
 			wantErr: false,
 		},
