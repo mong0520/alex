@@ -52,9 +52,9 @@ func BodyBytes(data map[string]interface{}) []byte {
 	return buffer.Bytes()
 }
 
-func Urlcat(host string, urls string, params map[string]interface{}) string {
-	var protocol = "http"
-	var u, _ = url.Parse(fmt.Sprintf("%s://%s%s", protocol, host, urls))
+// hostWithSchema should starts with https:// or http://
+func Urlcat(hostWithSchema string, urls string, params map[string]interface{}) string {
+	var u, _ = url.Parse(fmt.Sprintf("%s%s", hostWithSchema, urls))
 	var values, _ = url.ParseQuery(u.RawQuery)
 	for k, v := range params {
 		values.Add(k, fmt.Sprintf("%v", v))
