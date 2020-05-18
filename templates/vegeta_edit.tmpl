@@ -58,7 +58,7 @@
                         {{ range .Job.Hosts }}
                         <tr>
                             <td>
-                            <input type="text" name='host' value="{{ . }}" required title="Host:Port" placeholder='localhost:8000' class="form-control"/>
+                            <input type="text" name='host' value="{{ . }}" required title="Host:Port" placeholder='http(s)://localhost:8000' class="form-control"/>
                             </td>
                             <td class="text-center">
                                 <a data-op='add_row' class="btn btn-default"><span class="glyphicon glyphicon-plus"></span></a>
@@ -256,7 +256,7 @@ $(document).ready(function() {
     }
     function validateHost(el) {
         var params = $.trim(el.val());
-        var ok = /^\w+(\.\w+){0,}:\d{2,5}$/.test(params)
+        var ok = /^https{0,1}\:\/\/\w+(\.\w+){0,}:\d{2,5}$/.test(params)
         if(ok) {
             el.parent().removeClass("has-error")
         } else {
