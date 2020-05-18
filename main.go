@@ -27,6 +27,9 @@ func main() {
 	m.Get("/", func(r render.Render) {
 		r.Redirect("/vegeta/")
 	})
+	m.Get("/ping", func(r render.Render) {
+		r.JSON(200, nil)
+	})
 	m.Group("/api", func(r martini.Router) {
 		r.Get("/system", GetSystemStatus)
 		r.Get("/vegeta/state", GetVegetaJobState)
