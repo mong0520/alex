@@ -19,4 +19,5 @@ require (
 	golang.org/x/sys v0.0.0-20180126165840-ff2a66f350ce
 	golang.org/x/text v0.3.1-0.20171227012246-e19ae1496984
 	gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
+	moul.io/http2curl v1.0.0
 )

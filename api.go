@@ -11,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
 	"gopkg.in/mgo.v2/bson"
+	"moul.io/http2curl"
 )
 
 func GetSystemStatus(req *http.Request, r render.Render) {
@@ -101,13 +102,29 @@ func TestParam(req *http.Request, r render.Render) {
 		if err != nil {
 			result["err"] = err.Error()
 		} else {
-			result["_debug_request"] = fmt.Sprintf("Method: [%s], Header: [%#v], URL: [%s], Body: [%s]",
-				method,
-				headerMap,
-				Urlcat(host, url, paramMap),
-				string(postBody),
-			)
-			result["result"] = string(body)
+			command, err := http2curl.GetCurlCommand(rq)
+			if err != nil {
+				fmt.Println(err)
+			}
+			postBodyMap := map[string]interface{}{}
+			json.Unmarshal(postBody, &postBodyMap)
+			result["_debug_request"] = map[string]interface{}{
+				"method":        method,
+				"header":        headerMap,
+				"url":           Urlcat(host, url, paramMap),
+				"body":          postBodyMap,
+				"_curl_command": command.String(),
+			}
+
+			// fmt.Sprintf("Method: [%s], Header: [%#v], URL: [%s], Body: [%s]",
+			// 	method,
+			// 	headerMap,
+			// 	Urlcat(host, url, paramMap),
+			// 	postBody,
+			// )
+			bodyMap := map[string]interface{}{}
+			json.Unmarshal(body, &bodyMap)
+			result["result"] = bodyMap
 		}
 	} else {
 		result["err"] = err
