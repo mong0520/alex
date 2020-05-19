@@ -241,3 +241,14 @@ func ReplaceStringByEnvs(envs map[string]interface{}, autonum int, source *strin
 	*source = strings.Replace(*source, "!AUTONUM", fmt.Sprint(autonum), -1)
 	return nil
 }
+
+// MergeMaps merges the maps and the old one will be overwritten
+func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, m := range maps {
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
+}
