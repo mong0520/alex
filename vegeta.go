@@ -59,10 +59,13 @@ func (job *VegetaJob) IsRunning() bool {
 }
 
 func GetVegetaJobs(req *http.Request, r render.Render) {
+	var vegetaEnvs VegetaEnvs
 	var team = req.FormValue("team")
 	var project = req.FormValue("project")
 	var url = req.FormValue("url")
 	var page = req.FormValue("p")
+	var envCondition = bson.M{}
+	envCondition["profile"] = "default"
 	var condition = bson.M{}
 	if team != "" {
 		condition["team"] = team
@@ -94,6 +97,16 @@ func GetVegetaJobs(req *http.Request, r render.Render) {
 	context["project"] = project
 	context["url"] = url
 	context["pager"] = pager
+
+	err = G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	if err != nil {
+		context["global_envs"] = ""
+	} else {
+		globalEnvsData, _ := json.Marshal(vegetaEnvs.Envs)
+		context["global_envs"] = string(globalEnvsData)
+		context["global_envs_profile"] = vegetaEnvs.Profile
+	}
+
 	RenderTemplate(r, "vegeta_jobs", context)
 }
 
@@ -137,15 +150,26 @@ type VegetaEditForm struct {
 func EditVegetaJobPage(req *http.Request, r render.Render) {
 	var jobId = req.FormValue("job_id")
 	var job VegetaJob
+	var vegetaEnvs VegetaEnvs
 	err := G_MongoDB.C("vegeta_jobs").FindId(bson.ObjectIdHex(jobId)).One(&job)
 	if err != nil {
 		log.Panic(err)
 	}
+	var envCondition = bson.M{}
+	envCondition["profile"] = "default"
 	var context = make(map[string]interface{})
 	var form = VegetaEditForm{Job: &job}
 	form.Methods = GenMethodSelectors(job.Method)
 	form.Teams = GenTeamSelectors(job.Team)
 	context["form"] = form
+	err = G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	if err != nil {
+		context["global_envs"] = ""
+	} else {
+		globalEnvsData, _ := json.Marshal(vegetaEnvs.Envs)
+		context["global_envs"] = string(globalEnvsData)
+		context["global_envs_profile"] = vegetaEnvs.Profile
+	}
 	RenderTemplate(r, "vegeta_edit", context)
 }
 
@@ -262,10 +286,22 @@ func RunVegetaJob(req *http.Request, r render.Render) {
 	var periods = []RatePeriod{}
 	var envs = job.Envs
 	var envMap map[string]interface{}
+	var globalEnvMap map[string]interface{}
+	var vegetaEnvs VegetaEnvs
 	err = json.Unmarshal([]byte(envs), &envMap)
 	if err != nil {
 		log.Panicln(err)
 	}
+
+	var envCondition = bson.M{}
+	envCondition["profile"] = "default"
+	err = G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	if err != nil {
+		globalEnvMap = map[string]interface{}{}
+	} else {
+		globalEnvMap = vegetaEnvs.Envs
+	}
+	mergedEnvs := MergeMaps(globalEnvMap, envMap)
 
 	for i, _ := range rates {
 		var rate, _ = strconv.Atoi(rates[i])
@@ -279,8 +315,8 @@ func RunVegetaJob(req *http.Request, r render.Render) {
 	// replace magic strings
 	for idx, job := range job.Seeds {
 		log.Printf("[Before replacement] Header = %+v, Param = %+v, Data = %+v, JsonData = %s\n", job.Header, job.Param, job.Data, job.JsonData)
-		ReplaceMapByEnvs(envMap, idx, job.Header, job.Data, job.Param)
-		ReplaceStringByEnvs(envMap, idx, &job.JsonData)
+		ReplaceMapByEnvs(mergedEnvs, idx, job.Header, job.Data, job.Param)
+		ReplaceStringByEnvs(mergedEnvs, idx, &job.JsonData)
 		log.Printf("[After replacement] Header = %+v, Param = %+v, Data = %+v, JsonData = %s\n", job.Header, job.Param, job.Data, job.JsonData)
 	}
 	var changed = bson.M{
@@ -369,6 +405,29 @@ func GetVegetaMetrics(req *http.Request, r render.Render) {
 	RenderTemplate(r, "vegeta_metrics", context)
 }
 
+func CreateVegetaEnv(req *http.Request, r render.Render) {
+	var globalEnvs = req.FormValue("global_envs")
+	var vegetaEnvs VegetaEnvs
+	vegetaEnvs.Profile = req.FormValue("profile_name")
+	err := json.Unmarshal([]byte(globalEnvs), &vegetaEnvs.Envs)
+	if err != nil {
+		log.Printf("not a valid environment variables %s\n", err.Error())
+	} else {
+		var envCondition = bson.M{}
+		envCondition["profile"] = "default"
+
+		log.Printf("envs: %s\n", globalEnvs)
+		log.Printf("vegetaEnvs: %+v", vegetaEnvs)
+
+		_, err = G_MongoDB.C("vegeta_envs").Upsert(envCondition, vegetaEnvs)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	r.Redirect("/vegeta/")
+}
+
 type AttackVegetaLog struct {
 	Id          bson.ObjectId `json:"id"        bson:"_id,omitempty"`
 	JobId       string
@@ -380,6 +439,12 @@ type AttackVegetaLog struct {
 	MetricsList []*vegeta.Metrics
 	StartTs     int64
 	EndTs       int64
+}
+
+type VegetaEnvs struct {
+	Profile string
+	Id      bson.ObjectId          `json:"id"        bson:"_id,omitempty"`
+	Envs    map[string]interface{} `json:"envs"`
 }
 
 func (log *AttackVegetaLog) IsRunning() bool {

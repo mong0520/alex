@@ -75,11 +75,23 @@ func TestParam(req *http.Request, r render.Render) {
 	var dataMap map[string]interface{}
 	var postBody []byte
 	var envMap map[string]interface{}
+	var globalEnvMap map[string]interface{}
+	var vegetaEnvs VegetaEnvs
 	json.Unmarshal([]byte(header), &headerMap)
 	json.Unmarshal([]byte(params), &paramMap)
 	json.Unmarshal([]byte(envs), &envMap)
-	ReplaceMapByEnvs(envMap, 1, headerMap, paramMap, dataMap)
-	ReplaceStringByEnvs(envMap, 1, &data)
+
+	var envCondition = bson.M{}
+	envCondition["profile"] = "default"
+	err := G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	if err != nil {
+		globalEnvMap = map[string]interface{}{}
+	} else {
+		globalEnvMap = vegetaEnvs.Envs
+	}
+	mergedEnvs := MergeMaps(globalEnvMap, envMap)
+	ReplaceMapByEnvs(mergedEnvs, 1, headerMap, paramMap, dataMap)
+	ReplaceStringByEnvs(mergedEnvs, 1, &data)
 	if jsonified {
 		postBody = []byte(data)
 	} else {
@@ -96,26 +108,30 @@ func TestParam(req *http.Request, r render.Render) {
 	}
 	client := &http.Client{}
 	var result = map[string]interface{}{}
+	command, err := http2curl.GetCurlCommand(rq)
+	if err != nil {
+		fmt.Printf("error: %s\n", err.Error())
+	}
+	fmt.Printf("equivalent curl command = %s\n", command.String())
+	postBodyMap := map[string]interface{}{}
+	json.Unmarshal(postBody, &postBodyMap)
+	result["_debug_request"] = map[string]interface{}{
+		"method":        method,
+		"header":        headerMap,
+		"url":           Urlcat(host, url, paramMap),
+		"body":          postBodyMap,
+		"_curl_command": command.String(),
+	}
 	resp, err := client.Do(rq)
+
 	if err == nil {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			result["err"] = err.Error()
 		} else {
-			command, err := http2curl.GetCurlCommand(rq)
 			if err != nil {
 				fmt.Println(err)
 			}
-			postBodyMap := map[string]interface{}{}
-			json.Unmarshal(postBody, &postBodyMap)
-			result["_debug_request"] = map[string]interface{}{
-				"method":        method,
-				"header":        headerMap,
-				"url":           Urlcat(host, url, paramMap),
-				"body":          postBodyMap,
-				"_curl_command": command.String(),
-			}
-
 			// fmt.Sprintf("Method: [%s], Header: [%#v], URL: [%s], Body: [%s]",
 			// 	method,
 			// 	headerMap,
