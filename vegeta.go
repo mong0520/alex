@@ -54,12 +54,14 @@ type VegetaJob struct {
 	CurrentRate uint64
 }
 
+var vegetaEnvsCache *VegetaEnvs
+
 func (job *VegetaJob) IsRunning() bool {
 	return G_RunningVegetaJobs.Exists(job.Id.Hex())
 }
 
 func GetVegetaJobs(req *http.Request, r render.Render) {
-	var vegetaEnvs VegetaEnvs
+	var vegetaEnvs *VegetaEnvs
 	var team = req.FormValue("team")
 	var project = req.FormValue("project")
 	var url = req.FormValue("url")
@@ -98,7 +100,7 @@ func GetVegetaJobs(req *http.Request, r render.Render) {
 	context["url"] = url
 	context["pager"] = pager
 
-	err = G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	vegetaEnvs, err = getVegetaEnv("default")
 	if err != nil {
 		context["global_envs"] = ""
 	} else {
@@ -150,7 +152,7 @@ type VegetaEditForm struct {
 func EditVegetaJobPage(req *http.Request, r render.Render) {
 	var jobId = req.FormValue("job_id")
 	var job VegetaJob
-	var vegetaEnvs VegetaEnvs
+	var vegetaEnvs *VegetaEnvs
 	err := G_MongoDB.C("vegeta_jobs").FindId(bson.ObjectIdHex(jobId)).One(&job)
 	if err != nil {
 		log.Panic(err)
@@ -162,7 +164,7 @@ func EditVegetaJobPage(req *http.Request, r render.Render) {
 	form.Methods = GenMethodSelectors(job.Method)
 	form.Teams = GenTeamSelectors(job.Team)
 	context["form"] = form
-	err = G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	vegetaEnvs, err = getVegetaEnv("default")
 	if err != nil {
 		context["global_envs"] = ""
 	} else {
@@ -287,7 +289,7 @@ func RunVegetaJob(req *http.Request, r render.Render) {
 	var envs = job.Envs
 	var envMap map[string]interface{}
 	var globalEnvMap map[string]interface{}
-	var vegetaEnvs VegetaEnvs
+	var vegetaEnvs *VegetaEnvs
 	err = json.Unmarshal([]byte(envs), &envMap)
 	if err != nil {
 		log.Panicln(err)
@@ -295,7 +297,7 @@ func RunVegetaJob(req *http.Request, r render.Render) {
 
 	var envCondition = bson.M{}
 	envCondition["profile"] = "default"
-	err = G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
+	vegetaEnvs, err = getVegetaEnv("default")
 	if err != nil {
 		globalEnvMap = map[string]interface{}{}
 	} else {
@@ -413,19 +415,41 @@ func CreateVegetaEnv(req *http.Request, r render.Render) {
 	if err != nil {
 		log.Printf("not a valid environment variables %s\n", err.Error())
 	} else {
-		var envCondition = bson.M{}
-		envCondition["profile"] = "default"
-
-		log.Printf("envs: %s\n", globalEnvs)
-		log.Printf("vegetaEnvs: %+v", vegetaEnvs)
-
-		_, err = G_MongoDB.C("vegeta_envs").Upsert(envCondition, vegetaEnvs)
-		if err != nil {
-			log.Panic(err)
-		}
+		setVegetaEnv(&vegetaEnvs)
 	}
 
 	r.Redirect("/vegeta/")
+}
+
+func setVegetaEnv(vegetaEnvs *VegetaEnvs) error {
+	var envCondition = bson.M{}
+	envCondition["profile"] = "default"
+
+	_, err := G_MongoDB.C("vegeta_envs").Upsert(envCondition, vegetaEnvs)
+	if err != nil {
+		return err
+	}
+	log.Printf("update env cache: %+v\n", vegetaEnvs)
+	vegetaEnvsCache = vegetaEnvs
+	return nil
+}
+
+func getVegetaEnv(profile string) (*VegetaEnvs, error) {
+	if vegetaEnvsCache != nil {
+		log.Println("get envs from cache")
+		return vegetaEnvsCache, nil
+	}
+	log.Println("no envs from cache, get it from database and save it to cache")
+	var envCondition = bson.M{}
+	envCondition["profile"] = profile
+	err := G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvsCache)
+	if err != nil {
+		log.Printf("Not found env record from database: %s\n", err.Error())
+		return nil, err
+	}
+	log.Printf("Found env record from database: %+v\n", vegetaEnvsCache)
+
+	return vegetaEnvsCache, nil
 }
 
 type AttackVegetaLog struct {
