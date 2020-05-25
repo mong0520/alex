@@ -69,6 +69,7 @@ func TestParam(req *http.Request, r render.Render) {
 	var params = req.FormValue("param")
 	var data = req.FormValue("data")
 	var method = req.FormValue("method")
+	var project = req.FormValue("project")
 	var jsonified = req.FormValue("jsonified") == "true"
 	var headerMap map[string]interface{}
 	var paramMap map[string]interface{}
@@ -82,7 +83,7 @@ func TestParam(req *http.Request, r render.Render) {
 	json.Unmarshal([]byte(envs), &envMap)
 
 	var envCondition = bson.M{}
-	envCondition["profile"] = "default"
+	envCondition["profile"] = project
 	err := G_MongoDB.C("vegeta_envs").Find(envCondition).One(&vegetaEnvs)
 	if err != nil {
 		globalEnvMap = map[string]interface{}{}

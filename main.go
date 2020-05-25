@@ -49,7 +49,7 @@ func main() {
 		r.Get("/log/delete", DeleteVegetaLog)
 		r.Get("/metrics", GetVegetaMetrics)
 		r.Post("/env", CreateVegetaEnv)
-		r.Get("/env", GetVegetaMetrics)
+		r.Get("/env/delete", DeleteVegetaEnv)
 	})
 	m.Group("/boom", func(r martini.Router) {
 		r.Get("/", GetBoomJobs)

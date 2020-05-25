@@ -20,7 +20,7 @@
           </div>
           <button type="submit" class="btn btn-primary">Query</button>
           <a href="" class="btn btn-primary">Refresh Page</a>
-          <button type="button" data-toggle="modal" data-target="#setEnv" class="btn btn-success pull-right">Set Global Environments</button>          
+          <button type="button" data-toggle="modal" data-target="#setEnv" class="btn btn-success pull-right">Set Profile Environments</button>          
           <button type="button" data-toggle="modal" data-target="#newJob" class="btn btn-success pull-right">New Job</button>          
         </form>
         <br/>        
@@ -75,14 +75,7 @@
                 </td>
             </tr>
             {{ end }}
-        </table>
-        <div class="panel panel-default">
-          <div class="panel-header">
-              <span class="label label-primary">Global Environments</label>
-          </div>
-          <div class="panel-body" id="global_envs">
-          {{ .global_envs }}
-          </div>
+        </table>        
         </div>
         {{ template "pager" .pager }}
         <div class="modal fade" id="newJob">
@@ -132,18 +125,19 @@
             <div class="modal-content">
               <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</span></button>
-                <h4 class="modal-title">Set Global Environments</h4>
+                <h4 class="modal-title">Set Profile Environments</h4>
+                <p>- A project-scope environment variables</p>
               </div>
               <div class="modal-body">
                 <form class="form-horizontal" method="POST" action="/vegeta/env" id="create-form-env">
                   <div class="form-group">                    
-                    <label for="global_envs" class="col-sm-2 control-label">Profile</label>
+                    <label for="project" class="col-sm-2 control-label">Project</label>
                     <div class="col-sm-10">
-                      <input type="text" name="profile_name" class="form-control" required placeholder="profile_name" value="default" readonly="readonly">
+                      <input type="text" name="project" class="form-control" required placeholder="Project Name">
                     </div>
-                    <label for="global_envs" class="col-sm-2 control-label">Envs</label>
+                    <label for="project_envs" class="col-sm-2 control-label">Envs</label>
                     <div class="col-sm-10">
-                      <input type="text" name="global_envs" class="form-control" required placeholder="{}">
+                      <input type="text" name="project_envs" class="form-control" required placeholder='{"key": "value"}'>
                     </div>
                   </div>
                   <div class="form-group">
@@ -157,9 +151,80 @@
             </div>
           </div>
         </div>
+        <div class="modal fade" id="delEnv">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</span></button>
+                <h4 class="modal-title">Delete Project Environments</h4>
+              </div>
+              <div class="modal-body">
+                <form class="form-horizontal" method="GET" action="/vegeta/env/delete" id="create-form-env">
+                  <div class="form-group">                    
+                    <label for="project" class="col-sm-2 control-label">Profile</label>
+                    <div class="col-sm-10">
+                      <input type="text" name="project" class="form-control" required placeholder="Profile Name">
+                    </div>                    
+                  </div>
+                  <div class="form-group">
+                  <div class="col-sm-offset-2 col-sm-10">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                  </div>
+                  </div>
+                </form>      
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
+    <div class="panel panel-default">
+          <div class="panel-header">
+              <span class="label label-primary">Profile Environments</label>
+          </div>
+          <div class="panel-body" id="project_envs">
+          <table class="table table-striped">
+            <tr>
+                <th>Profile</th>
+                <th>Envs</th>   
+                <th>Operations</th>                
+            </tr>
+            {{ range .project_envs }}
+            <tr>
+              <td><span class="label label-info">{{ .Profile }}</span></td>
+              <td><code>{{ .EnvsRaw }}</code></td>
+              <td><a href="javascript:void(0)"
+                          class="btn btn-link btn-sm"
+                          data-toggle="popover"
+                          data-html="true"
+                          data-placement="left"
+                          data-content="<a class='btn btn-danger' href='/vegeta/env/delete?profile={{ .Profile }}'>Delete Now</a>"><span class="glyphicon glyphicon-remove"></span></a>
+              </td>
+            </tr>
+            {{ end }}          
+          </table>          
+          </div>
 </div>
 <script type="text/javascript">
+var myData = {"address":{"House_Number":505,
+"Street_Direction":"",
+"Street_Name":"Claremont",
+"Street_Type":"Street",
+"Apt":"15L",
+"Burough":"Brooklyn",
+"State":"NY",
+"Zip":"10451",
+"Phone":"718-777-7777"},
+"casehead":0,
+"adults":[{"Last_Name":"Foo",
+"First_Name":"A",
+"Sex":"M",
+"Date_Of_Birth":"01011980"}],
+"children":[]};
+
+var textedJson = JSON.stringify(myData, undefined, 4);
+$('#myTextarea').text(textedJson);
+
     $(document).ready(function() {
         $('a[data-toggle=popover]').popover();
         $('#create-form').submit(function() {
