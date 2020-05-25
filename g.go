@@ -41,6 +41,8 @@ var G_AlexTeams = []string{"python"}
 // Display Html page layout
 var G_ShowLayout = true
 
+var G_VegetaEnvsCache map[string]*VegetaEnvs
+
 // Configuration Object
 type Config struct {
 	BindAddr   string
@@ -87,4 +89,6 @@ func InitGlobals() {
 	G_MongoDB = session.DB("alex")
 	// set golang threads num
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	G_VegetaEnvsCache = map[string]*VegetaEnvs{}
 }
